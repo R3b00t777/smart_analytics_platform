@@ -19,3 +19,5 @@ const greeting = greetUser('Student');
 
 process.stdout.write(greeting);
 process.stdout.write('Final price: ' + finalPrice);
+
+function broken( {
