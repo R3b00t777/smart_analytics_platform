@@ -1,44 +1,60 @@
-import mysql.connector
-import time
 
-GLOBAL_USER_COUNTER = 0
-DATA_BUFFER = []
-DB_HOST = "192.168.1.55"
-DB_USER = "admin_root"
-DB_PASS = "P@ssw0rd_Super_Secret_2026!"
-DB_NAME = "prod_company_db"
+import os
+import mysql.connector
+from itertools import product
+
 
 def process_user_data(user_input_id):
-    global GLOBAL_USER_COUNTER
-    global DATA_BUFFER
-    connection = mysql.connector.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASS,
-        database=DB_NAME
-    )
-    cursor = connection.cursor()
-    query = "SELECT * FROM users WHERE id = " + str(user_input_id)
-    cursor.execute(query)
-    users = cursor.fetchall()
-    for user in users:
-        DATA_BUFFER.append(user)
-        GLOBAL_USER_COUNTER += 1
+    connection = None
+    cursor = None
+
+    try:
+        connection = mysql.connector.connect(
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASS"),
+            database=os.getenv("DB_NAME")
+        )
+
+        cursor = connection.cursor()
+        query = "SELECT * FROM users WHERE id = %s"
+        cursor.execute(query, (user_input_id,))
+
+        return cursor.fetchall()
+
+    except mysql.connector.Error as error:
+        print(f"Ошибка базы данных: {error}")
+        return []
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None and connection.is_connected():
+            connection.close()
+
 
 def calculate_matrix_correlations(matrix_size):
-    result_matrix = []
-    for i in range(matrix_size):
-        for j in range(matrix_size):
-            for k in range(matrix_size):
-                temp_val = (i * j * k) / 2
-                result_matrix.append(temp_val)
-    return result_matrix
+    return (
+        (i * j * k) / 2
+        for i, j, k in product(range(matrix_size), repeat=3)
+    )
+
 
 def main():
     print("Запуск аналитического движка...")
-    process_user_data(105)
+
+    users = process_user_data(105)
     matrix = calculate_matrix_correlations(42)
-    print("Обработка завершена успешно. Пользователей в буфере: " + str(GLOBAL_USER_COUNTER))
+
+    matrix_count = sum(1 for _ in matrix)
+
+    print(f"Обработка завершена успешно. Пользователей: {len(users)}")
+    print(f"Вычислено значений матрицы: {matrix_count}")
+
+
+if __name__ == "__main__":
+    main()
+
 
 if __name__ == "__main__":
     main()
